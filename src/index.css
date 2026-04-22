@@ -1,21 +1,24 @@
-/* Taxi Meter Pro - Premium Cyber Theme */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap');
+/* Fair Taxi Meter - Iconic Comfort Branding */
+@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;700;800;900&family=JetBrains+Mono:wght@700&display=swap');
 
 :root {
-  --bg-color: #050505;
-  --card-bg: rgba(20, 20, 20, 0.7);
-  --primary: #10b981; /* Emerald */
-  --primary-glow: rgba(16, 185, 129, 0.3);
-  --danger: #ef4444; /* Crimson */
-  --danger-glow: rgba(239, 68, 68, 0.3);
-  --warning: #f59e0b; /* Amber */
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --border: rgba(255, 255, 255, 0.1);
-  --glass: blur(12px);
+  --bg-velvet: #0F1012; /* رمادي مخملي عميق مريح للعين */
+  --bg-card: #1A1C1E;
+  --taxi-yellow: #F7C11B;
+  --taxi-yellow-soft: rgba(247, 193, 27, 0.1);
+  --taxi-yellow-glow: rgba(247, 193, 27, 0.4);
   
-  --font-main: 'Inter', sans-serif;
-  --font-digital: 'JetBrains Mono', monospace;
+  --accent-emerald: #10B981;
+  --accent-ruby: #EF4444;
+  
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  
+  --glass-bg: rgba(255, 255, 255, 0.02);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  
+  --font-main: 'Alexandria', sans-serif;
+  --font-digit: 'JetBrains Mono', monospace;
 }
 
 * {
@@ -23,20 +26,26 @@
   padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-main);
 }
 
 body {
-  background-color: var(--bg-color);
+  background-color: var(--bg-velvet);
   color: var(--text-primary);
-  font-family: var(--font-main);
   overflow: hidden;
   height: 100vh;
   width: 100vw;
-  user-select: none;
 }
 
-#root {
-  height: 100%;
+/* Iconic Taxi Checker Ribbon */
+.checker-ribbon {
+  width: 100%;
+  height: 6px;
+  background-image: 
+    linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), 
+    linear-gradient(45deg, #000 25%, var(--taxi-yellow) 25%, var(--taxi-yellow) 75%, #000 75%, #000);
+  background-size: 16px 16px;
+  opacity: 0.8;
 }
 
 .app-container {
@@ -44,75 +53,88 @@ body {
   flex-direction: column;
   height: 100%;
   position: relative;
-  overflow: hidden;
 }
 
-/* Glass Card Style */
-.card {
-  background: var(--card-bg);
-  backdrop-filter: var(--glass);
-  -webkit-backdrop-filter: var(--glass);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+/* Modern Card System */
+.taxi-card {
+  background: var(--bg-card);
+  border-radius: 30px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
 }
 
-/* Digital Display */
-.digital-fare {
-  font-family: var(--font-digital);
-  font-size: 5rem;
-  font-weight: 800;
-  letter-spacing: -2px;
-  color: var(--primary);
-  text-shadow: 0 0 20px var(--primary-glow);
+.taxi-card.active {
+  border-color: rgba(247, 193, 27, 0.2);
+  box-shadow: 0 0 40px var(--taxi-yellow-soft);
 }
 
-.stopped .digital-fare {
-  color: var(--danger);
-  text-shadow: 0 0 20px var(--danger-glow);
+/* Digital Meter */
+.digital-unit {
+  font-family: var(--font-digit) !important;
+  color: var(--taxi-yellow);
+  text-shadow: 0 0 25px var(--taxi-yellow-glow);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-/* Controls */
-.btn {
-  border: none;
-  border-radius: 50%;
-  width: 80px;
-  height: 80px;
+/* Professional Soft Buttons */
+.action-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  border-radius: 22px;
+  font-weight: 700;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-.btn-primary {
-  background: var(--primary);
+.action-btn-main {
+  background: var(--taxi-yellow);
   color: #000;
+  border: none;
+  font-weight: 800;
+  box-shadow: 0 8px 25px var(--taxi-yellow-soft);
 }
 
-.btn-danger {
-  background: var(--danger);
-  color: #fff;
+.action-btn:active {
+  transform: scale(0.96);
 }
 
-.btn:active {
-  transform: scale(0.9);
+/* Visual Comfort Glows */
+.bg-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 40%, var(--taxi-yellow-soft) 0%, transparent 60%);
+  z-index: -1;
+  pointer-events: none;
 }
 
-/* Animations */
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.active-glow {
-  animation: pulse 2s infinite ease-in-out;
-}
-
-/* RTL Support */
-[dir="rtl"] {
-  font-family: 'Inter', sans-serif; /* Add Arabic supporting font if needed */
+/* Skid Marks (Realistic Tire Tread Effect) */
+.skid-marks {
+  position: absolute;
+  width: 100%;
+  height: 240px;
+  /* Pattern representing chunky angled tire tread blocks */
+  background-image: 
+    url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.6'%3E%3Cpath d='M10 10l20 5v15l-20-5zM10 50l20 5v15l-20-5zM50 30l20 5v15l-20-5zM50 70l20 5v15l-20-5z'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(to right, 
+      transparent 0%, 
+      rgba(0, 0, 0, 0.45) 10%, 
+      rgba(0, 0, 0, 0.45) 35%, 
+      transparent 45%,
+      transparent 55%,
+      rgba(0, 0, 0, 0.45) 65%, 
+      rgba(0, 0, 0, 0.45) 90%, 
+      transparent 100%);
+  background-size: 40px 40px, 100% 100%;
+  background-repeat: repeat, no-repeat;
+  filter: blur(1.2px);
+  z-index: -1;
+  opacity: 0.25;
+  mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
 }

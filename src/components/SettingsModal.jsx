@@ -1,33 +1,33 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, RotateCcw } from 'lucide-react';
+import { X, Save, Car } from 'lucide-react';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, lang }) => {
   const [localConfig, setLocalConfig] = useState(config);
+
+  useEffect(() => {
+    setLocalConfig(config);
+  }, [config]);
 
   const t = {
     ar: {
       title: 'إعدادات التعريفة',
       baseFare: 'بدء العداد (الفتحة)',
       kmRate: 'سعر الكيلومتر الإضافي',
-      includedDistance: 'مسافة مشمولة في الفتحة (متر)',
+      includedDistance: 'مسافة مشمولة (متر)',
       waitingRate: 'سعر دقيقة الانتظار',
       enableWaiting: 'تفعيل حساب الانتظار',
-      accuracy: 'دقة الـ GPS المطلوبة (متر)',
       save: 'حفظ الإعدادات',
-      reset: 'إعادة الافتراضي',
-      currency: 'جنيه',
+      currency: 'EGP',
     },
     en: {
       title: 'Tariff Settings',
       baseFare: 'Base Fare (Flag Drop)',
       kmRate: 'Rate per Extra KM',
-      includedDistance: 'Distance included in Base Fare (m)',
+      includedDistance: 'Included Distance (m)',
       waitingRate: 'Waiting Rate (per min)',
       enableWaiting: 'Enable Waiting Time',
-      accuracy: 'Required Accuracy (meters)',
-      save: 'Save Settings',
-      reset: 'Reset Defaults',
+      save: 'Save Config',
       currency: 'EGP',
     }
   }[lang];
@@ -44,79 +44,84 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, lang }) => {
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 100 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100 }}
           />
           <motion.div 
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{ 
               position: 'fixed', bottom: 0, left: 0, right: 0, 
-              background: '#121212', borderTop: '1px solid var(--border)',
+              background: 'var(--bg-card)', borderTop: '2px solid var(--taxi-yellow)',
               borderTopLeftRadius: '32px', borderTopRightRadius: '32px',
-              padding: '30px 20px', zIndex: 101, maxHeight: '90vh', overflowY: 'auto'
+              padding: '35px 25px', zIndex: 101, maxHeight: '90vh', overflowY: 'auto',
+              boxShadow: '0 -10px 40px rgba(0,0,0,0.5)'
             }}
           >
+            {/* Checker Decoration */}
+            <div className="checker-ribbon" style={{ position: 'absolute', top: 0, left: 0, height: '4px' }} />
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '800' }}>{t.title}</h2>
-              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '10px', borderRadius: '50%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Car color="var(--taxi-yellow)" size={24} />
+                <h2 style={{ fontSize: '1.4rem', fontWeight: '900' }}>{t.title}</h2>
+              </div>
+              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', padding: '10px', borderRadius: '50%' }}>
                 <X size={24} />
               </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div className="input-group">
-                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '8px' }}>{t.baseFare}</label>
-                <input 
-                  type="number" value={localConfig.baseFare} 
-                  onChange={e => setLocalConfig({...localConfig, baseFare: parseFloat(e.target.value)})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', padding: '15px', borderRadius: '15px', color: '#fff' }}
-                />
-              </div>
+              {/* Numeric Inputs */}
+              {[
+                { key: 'baseFare', label: t.baseFare, type: 'number', step: 'any' },
+                { key: 'includedDistance', label: t.includedDistance, type: 'number', step: '1' },
+                { key: 'kmRate', label: t.kmRate, type: 'number', step: 'any' }
+              ].map(field => (
+                <div key={field.key}>
+                  <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '8px', fontWeight: '700', textTransform: 'uppercase' }}>
+                    {field.label}
+                  </label>
+                  <input 
+                    type={field.type} step={field.step}
+                    value={localConfig[field.key]} 
+                    onChange={e => setLocalConfig({...localConfig, [field.key]: field.key === 'includedDistance' ? parseInt(e.target.value) : parseFloat(e.target.value)})}
+                    style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', padding: '18px', borderRadius: '18px', color: '#fff', fontSize: '1.1rem', fontWeight: '600' }}
+                  />
+                </div>
+              ))}
 
-              <div className="input-group">
-                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '8px' }}>{t.includedDistance}</label>
-                <input 
-                  type="number" value={localConfig.includedDistance} 
-                  onChange={e => setLocalConfig({...localConfig, includedDistance: parseInt(e.target.value)})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', padding: '15px', borderRadius: '15px', color: '#fff' }}
-                />
-              </div>
-
-              <div className="input-group">
-                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '8px' }}>{t.kmRate}</label>
-                <input 
-                  type="number" value={localConfig.kmRate} 
-                  onChange={e => setLocalConfig({...localConfig, kmRate: parseFloat(e.target.value)})}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', padding: '15px', borderRadius: '15px', color: '#fff' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '15px' }}>
-                <span style={{ fontWeight: '600' }}>{t.enableWaiting}</span>
+              {/* Waiting Time Switch */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', background: 'rgba(247, 193, 27, 0.05)', borderRadius: '18px', border: '1px solid rgba(247, 193, 27, 0.1)' }}>
+                <span style={{ fontWeight: '800' }}>{t.enableWaiting}</span>
                 <input 
                   type="checkbox" checked={localConfig.enableWaitingTime} 
                   onChange={e => setLocalConfig({...localConfig, enableWaitingTime: e.target.checked})}
-                  style={{ width: '24px', height: '24px', accentColor: 'var(--primary)' }}
+                  style={{ width: '28px', height: '28px', accentColor: 'var(--taxi-yellow)' }}
                 />
               </div>
 
               {localConfig.enableWaitingTime && (
-                <div className="input-group">
-                  <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '8px' }}>{t.waitingRate}</label>
+                <div>
+                  <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '8px', fontWeight: '700', textTransform: 'uppercase' }}>
+                    {t.waitingRate}
+                  </label>
                   <input 
-                    type="number" value={localConfig.waitingRateMinute} 
+                    type="number" step="any"
+                    value={localConfig.waitingRateMinute} 
                     onChange={e => setLocalConfig({...localConfig, waitingRateMinute: parseFloat(e.target.value)})}
-                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', padding: '15px', borderRadius: '15px', color: '#fff' }}
+                    style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', padding: '18px', borderRadius: '18px', color: '#fff', fontSize: '1.1rem', fontWeight: '600' }}
                   />
                 </div>
               )}
 
-              <button 
+              <motion.button 
+                whileTap={{ scale: 0.95 }}
                 onClick={handleSave}
-                style={{ width: '100%', background: 'var(--primary)', color: '#000', border: 'none', padding: '18px', borderRadius: '15px', fontWeight: '800', marginTop: '10px' }}
+                className="action-btn action-btn-main"
+                style={{ width: '100%', height: '70px', marginTop: '10px', fontSize: '1.1rem' }}
               >
-                {t.save}
-              </button>
+                <Save size={20} style={{ marginRight: '10px' }} /> {t.save}
+              </motion.button>
             </div>
           </motion.div>
         </>

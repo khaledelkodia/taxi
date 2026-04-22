@@ -85,7 +85,7 @@ export const useTaxiMeter = () => {
       
       await TextToSpeech.speak({ 
         text, 
-        lang: isAr ? 'ar-XA' : 'en-US',
+        lang: isAr ? 'ar-SA' : 'en-US',
         rate: 0.9 
       });
     } catch (e) { console.error('Speech error', e); }

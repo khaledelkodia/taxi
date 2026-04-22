@@ -30,31 +30,32 @@ const App = () => {
     initApp();
 
     const checkPermissions = async () => {
-      // 1. Min splash time: 3 seconds
-      const timer = new Promise(resolve => setTimeout(resolve, 3000));
+      const startTime = Date.now();
       
-      // 2. Continuous check for permissions (as per user request: "if no permission, stay standing")
-      const permInterval = setInterval(async () => {
-        try {
-          const perm = await Geolocation.checkPermissions();
-          if (perm.location === 'granted') {
-            setIsPermGranted(true);
-            clearInterval(permInterval);
-          } else if (perm.location === 'prompt' || perm.location === 'prompt-with-rationale') {
-             // Optional: automatically trigger prompt to move forward
-             await Geolocation.requestPermissions();
-          }
-        } catch (e) { console.error('Perm check error', e); }
-      }, 1000);
+      try {
+        const initialPerm = await Geolocation.checkPermissions();
+        if (initialPerm.location !== 'granted') {
+          await Geolocation.requestPermissions();
+        }
+      } catch (e) { console.error('Permission prompt error', e); }
 
-      await timer;
+      const checkAndHide = async () => {
+         try {
+           const perm = await Geolocation.checkPermissions();
+           if (perm.location === 'granted') {
+             setIsPermGranted(true);
+             const elapsed = Date.now() - startTime;
+             const remaining = Math.max(0, 3000 - elapsed);
+             setTimeout(() => setShowSplash(false), remaining);
+           } else {
+             setTimeout(checkAndHide, 500);
+           }
+         } catch (e) {
+             setTimeout(checkAndHide, 500);
+         }
+      };
       
-      // If we reach here and have permissions, we can hide splash
-      const finalPerm = await Geolocation.checkPermissions();
-      if (finalPerm.location === 'granted') {
-        setShowSplash(false);
-        clearInterval(permInterval);
-      }
+      checkAndHide();
     };
     
     checkPermissions();

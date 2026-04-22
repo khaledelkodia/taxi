@@ -3,10 +3,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Car } from 'lucide-react';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, lang }) => {
-  const [localConfig, setLocalConfig] = useState(config);
+  // Use string-based state for numeric inputs to allow decimals (like "1.")
+  const [formData, setFormData] = useState({
+    baseFare: config.baseFare.toString(),
+    includedDistance: config.includedDistance.toString(),
+    kmRate: config.kmRate.toString(),
+    waitingRateMinute: config.waitingRateMinute.toString(),
+    enableWaitingTime: config.enableWaitingTime
+  });
 
   useEffect(() => {
-    setLocalConfig(config);
+    setFormData({
+      baseFare: config.baseFare.toString(),
+      includedDistance: config.includedDistance.toString(),
+      kmRate: config.kmRate.toString(),
+      waitingRateMinute: config.waitingRateMinute.toString(),
+      enableWaitingTime: config.enableWaitingTime
+    });
   }, [config]);
 
   const t = {
@@ -33,7 +46,13 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, lang }) => {
   }[lang];
 
   const handleSave = () => {
-    onSave(localConfig);
+    onSave({
+      baseFare: parseFloat(formData.baseFare) || 0,
+      includedDistance: parseInt(formData.includedDistance) || 0,
+      kmRate: parseFloat(formData.kmRate) || 0,
+      waitingRateMinute: parseFloat(formData.waitingRateMinute) || 0,
+      enableWaitingTime: formData.enableWaitingTime
+    });
     onClose();
   };
 
@@ -73,18 +92,19 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, lang }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Numeric Inputs */}
               {[
-                { key: 'baseFare', label: t.baseFare, type: 'number', step: 'any' },
-                { key: 'includedDistance', label: t.includedDistance, type: 'number', step: '1' },
-                { key: 'kmRate', label: t.kmRate, type: 'number', step: 'any' }
+                { key: 'baseFare', label: t.baseFare },
+                { key: 'includedDistance', label: t.includedDistance },
+                { key: 'kmRate', label: t.kmRate }
               ].map(field => (
                 <div key={field.key}>
                   <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '8px', fontWeight: '700', textTransform: 'uppercase' }}>
                     {field.label}
                   </label>
                   <input 
-                    type={field.type} step={field.step}
-                    value={localConfig[field.key]} 
-                    onChange={e => setLocalConfig({...localConfig, [field.key]: field.key === 'includedDistance' ? parseInt(e.target.value) : parseFloat(e.target.value)})}
+                    type="text"
+                    inputMode="decimal"
+                    value={formData[field.key]} 
+                    onChange={e => setFormData({...formData, [field.key]: e.target.value})}
                     style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', padding: '18px', borderRadius: '18px', color: '#fff', fontSize: '1.1rem', fontWeight: '600' }}
                   />
                 </div>
@@ -94,21 +114,22 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, lang }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', background: 'rgba(247, 193, 27, 0.05)', borderRadius: '18px', border: '1px solid rgba(247, 193, 27, 0.1)' }}>
                 <span style={{ fontWeight: '800' }}>{t.enableWaiting}</span>
                 <input 
-                  type="checkbox" checked={localConfig.enableWaitingTime} 
-                  onChange={e => setLocalConfig({...localConfig, enableWaitingTime: e.target.checked})}
+                  type="checkbox" checked={formData.enableWaitingTime} 
+                  onChange={e => setFormData({...formData, enableWaitingTime: e.target.checked})}
                   style={{ width: '28px', height: '28px', accentColor: 'var(--taxi-yellow)' }}
                 />
               </div>
 
-              {localConfig.enableWaitingTime && (
-                <div>
+              {formData.enableWaitingTime && (
+                <div style={{ marginTop: '10px' }}>
                   <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '8px', fontWeight: '700', textTransform: 'uppercase' }}>
                     {t.waitingRate}
                   </label>
                   <input 
-                    type="number" step="any"
-                    value={localConfig.waitingRateMinute} 
-                    onChange={e => setLocalConfig({...localConfig, waitingRateMinute: parseFloat(e.target.value)})}
+                    type="text"
+                    inputMode="decimal"
+                    value={formData.waitingRateMinute} 
+                    onChange={e => setFormData({...formData, waitingRateMinute: e.target.value})}
                     style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', padding: '18px', borderRadius: '18px', color: '#fff', fontSize: '1.1rem', fontWeight: '600' }}
                   />
                 </div>

@@ -3,6 +3,7 @@ import { useTaxiMeter } from './hooks/useTaxiMeter';
 import SettingsModal from './components/SettingsModal';
 import SplashScreen from './components/SplashScreen';
 import { Geolocation } from '@capacitor/geolocation';
+import { StatusBar } from '@capacitor/status-bar';
 import { Play, Square, Pause, Settings, Globe, Navigation, Clock, Gauge, Signal, Car } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +19,16 @@ const App = () => {
   } = useTaxiMeter();
 
   useEffect(() => {
+    // Hide status bar for immersive experience
+    const initApp = async () => {
+      try {
+        await StatusBar.hide();
+      } catch (e) {
+        console.log('StatusBar not available in this environment');
+      }
+    };
+    initApp();
+
     const checkPermissions = async () => {
       // 1. Min splash time: 3 seconds
       const timer = new Promise(resolve => setTimeout(resolve, 3000));
@@ -207,14 +218,38 @@ const App = () => {
           {(status === 'RUNNING' || status === 'PAUSED') && (
             <motion.div 
               key="on-trip" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              style={{ display: 'flex', gap: '15px' }}
             >
-              <button onClick={status === 'RUNNING' ? pauseTrip : resumeTrip} className="action-btn" style={{ flex: 1, height: '70px' }}>
-                {status === 'RUNNING' ? <Pause size={30} /> : <Play size={30} fill="currentColor" color="var(--taxi-yellow)" />}
-              </button>
-              <button onClick={stopTrip} className="action-btn action-btn-main" style={{ flex: 2, height: '70px', background: 'var(--accent-ruby)', color: '#fff', fontSize: '1.1rem' }}>
-                <Square size={24} fill="currentColor" /> <span style={{ marginLeft: '10px' }}>{t.stop}</span>
-              </button>
+              {status === 'RUNNING' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <motion.button 
+                    whileTap={{ scale: 0.95 }}
+                    onClick={pauseTrip}
+                    className="action-btn"
+                    style={{ height: '70px', borderRadius: '22px', fontSize: '1.1rem', background: 'rgba(255,255,255,0.05)' }}
+                  >
+                    <Pause size={24} style={{ marginBottom: '5px' }} />
+                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800' }}>{t.pause}</span>
+                  </motion.button>
+                  <motion.button 
+                    whileTap={{ scale: 0.95 }} 
+                    onClick={() => stopTrip(lang)}
+                    className="action-btn"
+                    style={{ height: '70px', borderRadius: '22px', fontSize: '1.1rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+                  >
+                    <Square size={24} style={{ marginBottom: '5px' }} />
+                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800' }}>{t.stop}</span>
+                  </motion.button>
+                </div>
+              )}
+              {status === 'PAUSED' && (
+                <motion.button 
+                  whileTap={{ scale: 0.95 }} onClick={resumeTrip}
+                  className="action-btn action-btn-main"
+                  style={{ width: '100%', height: '70px', fontSize: '1.2rem', gap: '12px' }}
+                >
+                  <Play size={24} fill="currentColor" /> {t.resume}
+                </motion.button>
+              )}
             </motion.div>
           )}
 

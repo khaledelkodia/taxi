@@ -34,18 +34,10 @@ body {
   color: var(--text-primary);
   overflow: hidden;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
-}
-
-/* Iconic Taxi Checker Ribbon */
-.checker-ribbon {
-  width: 100%;
-  height: 6px;
-  background-image: 
-    linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), 
-    linear-gradient(45deg, #000 25%, var(--taxi-yellow) 25%, var(--taxi-yellow) 75%, #000 75%, #000);
-  background-size: 16px 16px;
-  opacity: 0.8;
+  /* Support for notch and safe areas */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .app-container {
@@ -53,6 +45,7 @@ body {
   flex-direction: column;
   height: 100%;
   position: relative;
+  overflow: hidden;
 }
 
 /* Modern Card System */

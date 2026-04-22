@@ -35,6 +35,7 @@ export const useTaxiMeter = () => {
   const configRef = useRef(config);
   const distanceRef = useRef(distance);
   const waitingTimeRef = useRef(waitingTime);
+  const hasMoved = useRef(false); // New: Track if movement has started
   const watchId = useRef(null);
   const lastPosition = useRef(null);
   const timerRef = useRef(null);
@@ -74,10 +75,19 @@ export const useTaxiMeter = () => {
     return newFare;
   };
 
-  const announceFare = async (amount) => {
+  const announceFare = async (amount, lang = 'ar') => {
     try {
-      const text = `The total fare is ${amount.toFixed(0)} pounds`;
-      await TextToSpeech.speak({ text, lang: 'en-US' });
+      const isAr = lang === 'ar';
+      const roundedFare = Math.round(amount);
+      const text = isAr 
+        ? `تم انتهاء الرحلة. إجمالي الأجرة هو ${roundedFare} جنيه.`
+        : `Trip finished. The total fare is ${roundedFare} pounds.`;
+      
+      await TextToSpeech.speak({ 
+        text, 
+        lang: isAr ? 'ar-XA' : 'en-US',
+        rate: 0.9 
+      });
     } catch (e) { console.error('Speech error', e); }
   };
 
@@ -103,7 +113,13 @@ export const useTaxiMeter = () => {
           setAccuracy(acc);
           if (acc > configRef.current.accuracyThreshold) return;
 
-          setSpeed((sMs || 0) * 3.6);
+          const currentSpeedKmH = (sMs || 0) * 3.6;
+          setSpeed(currentSpeedKmH);
+
+          // If speed is above threshold, mark as moved
+          if (currentSpeedKmH > configRef.current.minMoveThreshold) {
+            hasMoved.current = true;
+          }
 
           if (lastPosition.current) {
             const dist = geolib.getDistance(
@@ -113,6 +129,7 @@ export const useTaxiMeter = () => {
             );
 
             if (dist > configRef.current.minMoveThreshold) {
+              hasMoved.current = true; // Also mark as moved if distance logic triggers
               setDistance(prev => {
                 const newDist = prev + dist;
                 setFare(calculateCurrentFare(newDist, waitingTimeRef.current, configRef.current));
@@ -129,7 +146,11 @@ export const useTaxiMeter = () => {
       timerRef.current = setInterval(() => {
         if (statusRef.current === TRIP_STATUS.RUNNING) {
           setSpeed(s => {
-            if (configRef.current.enableWaitingTime && s <= configRef.current.speedThreshold) {
+            // ONLY accumulate waiting time if:
+            // 1. Waiting is enabled in config
+            // 2. Speed is low
+            // 3. AND the car has actually moved at least once (to prevent charging before start)
+            if (configRef.current.enableWaitingTime && s <= configRef.current.speedThreshold && hasMoved.current) {
               setWaitingTime(prev => {
                 const newWait = prev + 1;
                 setFare(calculateCurrentFare(distanceRef.current, newWait, configRef.current));
@@ -143,11 +164,11 @@ export const useTaxiMeter = () => {
     } catch (error) { alert('GPS Error: ' + error.message); }
   }, []);
 
-  const stopTrip = async () => {
+  const stopTrip = async (lang = 'ar') => {
     if (watchId.current) Geolocation.clearWatch({ id: watchId.current });
     if (timerRef.current) clearInterval(timerRef.current);
     setStatus(TRIP_STATUS.FINISHED);
-    await announceFare(fare);
+    await announceFare(fare, lang);
   };
 
   return {
@@ -157,6 +178,7 @@ export const useTaxiMeter = () => {
     stopTrip, resetTrip: () => {
       setStatus(TRIP_STATUS.IDLE); setFare(0); setDistance(0); 
       setWaitingTime(0); setSpeed(0); setAccuracy(null);
+      hasMoved.current = false; // Reset movement flag
     },
     saveConfig
   };

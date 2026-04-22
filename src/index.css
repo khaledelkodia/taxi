@@ -1,0 +1,118 @@
+/* Taxi Meter Pro - Premium Cyber Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap');
+
+:root {
+  --bg-color: #050505;
+  --card-bg: rgba(20, 20, 20, 0.7);
+  --primary: #10b981; /* Emerald */
+  --primary-glow: rgba(16, 185, 129, 0.3);
+  --danger: #ef4444; /* Crimson */
+  --danger-glow: rgba(239, 68, 68, 0.3);
+  --warning: #f59e0b; /* Amber */
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --border: rgba(255, 255, 255, 0.1);
+  --glass: blur(12px);
+  
+  --font-main: 'Inter', sans-serif;
+  --font-digital: 'JetBrains Mono', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+}
+
+#root {
+  height: 100%;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glass Card Style */
+.card {
+  background: var(--card-bg);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Digital Display */
+.digital-fare {
+  font-family: var(--font-digital);
+  font-size: 5rem;
+  font-weight: 800;
+  letter-spacing: -2px;
+  color: var(--primary);
+  text-shadow: 0 0 20px var(--primary-glow);
+}
+
+.stopped .digital-fare {
+  color: var(--danger);
+  text-shadow: 0 0 20px var(--danger-glow);
+}
+
+/* Controls */
+.btn {
+  border: none;
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #000;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn:active {
+  transform: scale(0.9);
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.active-glow {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  font-family: 'Inter', sans-serif; /* Add Arabic supporting font if needed */
+}

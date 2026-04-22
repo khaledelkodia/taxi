@@ -1,0 +1,5 @@
+{
+  "appId": "com.taximeter.app",
+  "appName": "TaxiMeter",
+  "webDir": "dist"
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TaxiMeter</string>
+    <string name="title_activity_main">TaxiMeter</string>
+    <string name="package_name">com.taximeter.app</string>
+    <string name="custom_url_scheme">com.taximeter.app</string>
+</resources>

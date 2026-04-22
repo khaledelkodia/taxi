@@ -12,13 +12,14 @@ const TRIP_STATUS = {
 };
 
 export const DEFAULT_CONFIG = {
-  baseFare: 10.0,
-  kmRate: 5.0,
-  waitingRateMinute: 1.0,
-  enableWaitingTime: false, // User requested distance-based primarily
-  speedThreshold: 5, // km/h
-  accuracyThreshold: 30, // meters (ignore points worse than this)
-  minMoveThreshold: 2, // meters (ignore tiny jumps)
+  baseFare: 15.0, // EGP
+  kmRate: 4.0, // EGP
+  waitingRateMinute: 0.53, // ~32 EGP per hour
+  includedDistance: 1000, // 1000m (1km) included in base fare
+  enableWaitingTime: true,
+  speedThreshold: 5,
+  accuracyThreshold: 30,
+  minMoveThreshold: 2,
 };
 
 export const useTaxiMeter = () => {
@@ -28,16 +29,20 @@ export const useTaxiMeter = () => {
   const [distance, setDistance] = useState(0);
   const [waitingTime, setWaitingTime] = useState(0);
   const [speed, setSpeed] = useState(0);
-  const [accuracy, setAccuracy] = useState(null); // GPS accuracy in meters
+  const [accuracy, setAccuracy] = useState(null);
   
   const statusRef = useRef(status);
   const configRef = useRef(config);
+  const distanceRef = useRef(distance);
+  const waitingTimeRef = useRef(waitingTime);
   const watchId = useRef(null);
   const lastPosition = useRef(null);
   const timerRef = useRef(null);
 
   useEffect(() => { statusRef.current = status; }, [status]);
   useEffect(() => { configRef.current = config; }, [config]);
+  useEffect(() => { distanceRef.current = distance; }, [distance]);
+  useEffect(() => { waitingTimeRef.current = waitingTime; }, [waitingTime]);
 
   // Load settings on mount
   useEffect(() => {
@@ -58,9 +63,19 @@ export const useTaxiMeter = () => {
     });
   };
 
+  const calculateCurrentFare = (totalDist, waitTimeSecs, cfg) => {
+    let newFare = cfg.baseFare;
+    if (totalDist > cfg.includedDistance) {
+      newFare += ((totalDist - cfg.includedDistance) / 1000) * cfg.kmRate;
+    }
+    if (cfg.enableWaitingTime) {
+      newFare += (waitTimeSecs / 60) * cfg.waitingRateMinute;
+    }
+    return newFare;
+  };
+
   const announceFare = async (amount) => {
     try {
-      console.log('Announcing fare:', amount);
       const text = `The total fare is ${amount.toFixed(0)} pounds`;
       await TextToSpeech.speak({ text, lang: 'en-US' });
     } catch (e) { console.error('Speech error', e); }
@@ -70,7 +85,7 @@ export const useTaxiMeter = () => {
     try {
       const perm = await Geolocation.requestPermissions();
       if (perm.location === 'denied') {
-        alert('Please enable location to use the meter.');
+        alert('Please enable location.');
         return;
       }
 
@@ -84,18 +99,11 @@ export const useTaxiMeter = () => {
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
         (position, err) => {
           if (err || !position) return;
-
           const { latitude, longitude, speed: sMs, accuracy: acc } = position.coords;
           setAccuracy(acc);
+          if (acc > configRef.current.accuracyThreshold) return;
 
-          // Jitter Filtering: Ignore points with poor accuracy
-          if (acc > configRef.current.accuracyThreshold) {
-            console.log('Skipping point due to low accuracy:', acc);
-            return;
-          }
-
-          const currentSpeedKmh = (sMs || 0) * 3.6;
-          setSpeed(currentSpeedKmh);
+          setSpeed((sMs || 0) * 3.6);
 
           if (lastPosition.current) {
             const dist = geolib.getDistance(
@@ -104,12 +112,10 @@ export const useTaxiMeter = () => {
               1
             );
 
-            // Jitter Filtering: Ignore tiny jumps
             if (dist > configRef.current.minMoveThreshold) {
               setDistance(prev => {
                 const newDist = prev + dist;
-                // Update fare based on distance (km)
-                setFare(f => f + (dist / 1000) * configRef.current.kmRate);
+                setFare(calculateCurrentFare(newDist, waitingTimeRef.current, configRef.current));
                 return newDist;
               });
               lastPosition.current = { latitude, longitude };
@@ -120,14 +126,13 @@ export const useTaxiMeter = () => {
         }
       );
 
-      // Timer for waiting time (only if enabled)
       timerRef.current = setInterval(() => {
-        if (statusRef.current === TRIP_STATUS.RUNNING && configRef.current.enableWaitingTime) {
+        if (statusRef.current === TRIP_STATUS.RUNNING) {
           setSpeed(s => {
-            if (s <= configRef.current.speedThreshold) {
+            if (configRef.current.enableWaitingTime && s <= configRef.current.speedThreshold) {
               setWaitingTime(prev => {
                 const newWait = prev + 1;
-                setFare(f => f + (configRef.current.waitingRateMinute / 60));
+                setFare(calculateCurrentFare(distanceRef.current, newWait, configRef.current));
                 return newWait;
               });
             }
@@ -135,13 +140,8 @@ export const useTaxiMeter = () => {
           });
         }
       }, 1000);
-    } catch (error) {
-      alert('GPS Error: ' + error.message);
-    }
+    } catch (error) { alert('GPS Error: ' + error.message); }
   }, []);
-
-  const pauseTrip = () => setStatus(TRIP_STATUS.PAUSED);
-  const resumeTrip = () => setStatus(TRIP_STATUS.RUNNING);
 
   const stopTrip = async () => {
     if (watchId.current) Geolocation.clearWatch({ id: watchId.current });
@@ -150,17 +150,14 @@ export const useTaxiMeter = () => {
     await announceFare(fare);
   };
 
-  const resetTrip = () => {
-    setStatus(TRIP_STATUS.IDLE);
-    setFare(0);
-    setDistance(0);
-    setWaitingTime(0);
-    setSpeed(0);
-    setAccuracy(null);
-  };
-
   return {
     status, fare, distance, waitingTime, speed, accuracy, config,
-    startTrip, pauseTrip, resumeTrip, stopTrip, resetTrip, saveConfig
+    startTrip, pauseTrip: () => setStatus(TRIP_STATUS.PAUSED),
+    resumeTrip: () => setStatus(TRIP_STATUS.RUNNING),
+    stopTrip, resetTrip: () => {
+      setStatus(TRIP_STATUS.IDLE); setFare(0); setDistance(0); 
+      setWaitingTime(0); setSpeed(0); setAccuracy(null);
+    },
+    saveConfig
   };
 };

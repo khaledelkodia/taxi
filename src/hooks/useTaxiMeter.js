@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Geolocation } from '@capacitor/geolocation';
+import { registerPlugin } from '@capacitor/core';
+const BackgroundGeolocation = registerPlugin('BackgroundGeolocation');
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import { Preferences } from '@capacitor/preferences';
 import * as geolib from 'geolib';
-
 const TRIP_STATUS = {
   IDLE: 'IDLE',
   RUNNING: 'RUNNING',
@@ -20,6 +21,20 @@ export const DEFAULT_CONFIG = {
   speedThreshold: 5,
   accuracyThreshold: 30,
   minMoveThreshold: 2,
+};
+
+const getAccurateDistance = (loc1, loc2) => {
+  const R = 6371e3; // Earth radius in meters
+  const toRad = Math.PI / 180;
+  const lat1 = loc1.latitude * toRad;
+  const lat2 = loc2.latitude * toRad;
+  const deltaLat = (loc2.latitude - loc1.latitude) * toRad;
+  const deltaLon = (loc2.longitude - loc1.longitude) * toRad;
+  const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+            Math.cos(lat1) * Math.cos(lat2) *
+            Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; 
 };
 
 export const useTaxiMeter = () => {
@@ -105,11 +120,17 @@ export const useTaxiMeter = () => {
       setStatus(TRIP_STATUS.RUNNING);
       lastPosition.current = null;
 
-      watchId.current = await Geolocation.watchPosition(
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      watchId.current = await BackgroundGeolocation.addWatcher(
+        {
+          backgroundMessage: "FAIR App: Trip in progress. Fare is being calculated.",
+          backgroundTitle: "FAIR Taxi Meter",
+          requestPermissions: true,
+          stale: false,
+          distanceFilter: 0 // Get all location updates for maximum accuracy
+        },
         (position, err) => {
           if (err || !position) return;
-          const { latitude, longitude, speed: sMs, accuracy: acc } = position.coords;
+          const { latitude, longitude, speed: sMs, accuracy: acc } = position;
           setAccuracy(acc);
           if (acc > configRef.current.accuracyThreshold) return;
 
@@ -122,13 +143,10 @@ export const useTaxiMeter = () => {
           }
 
           if (lastPosition.current) {
-            const dist = geolib.getDistance(
-              { latitude: lastPosition.current.latitude, longitude: lastPosition.current.longitude },
-              { latitude, longitude },
-              1
-            );
+            const dist = getAccurateDistance(lastPosition.current, { latitude, longitude });
 
-            if (dist > configRef.current.minMoveThreshold) {
+            // Accumulate if speed is high enough OR jump is significant enough (> 2m)
+            if (currentSpeedKmH > configRef.current.minMoveThreshold || dist > 2) {
               hasMoved.current = true; // Also mark as moved if distance logic triggers
               setDistance(prev => {
                 const newDist = prev + dist;
@@ -165,7 +183,7 @@ export const useTaxiMeter = () => {
   }, []);
 
   const stopTrip = async (lang = 'ar') => {
-    if (watchId.current) Geolocation.clearWatch({ id: watchId.current });
+    if (watchId.current) BackgroundGeolocation.removeWatcher({ id: watchId.current });
     if (timerRef.current) clearInterval(timerRef.current);
     setStatus(TRIP_STATUS.FINISHED);
     await announceFare(fare, lang);

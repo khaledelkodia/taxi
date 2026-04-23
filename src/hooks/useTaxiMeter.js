@@ -145,8 +145,8 @@ export const useTaxiMeter = () => {
           if (lastPosition.current) {
             const dist = getAccurateDistance(lastPosition.current, { latitude, longitude });
 
-            // Accumulate if speed is high enough OR jump is significant enough (> 2m)
-            if (currentSpeedKmH > configRef.current.minMoveThreshold || dist > 2) {
+            // Accumulate if speed is high enough OR jump is significant enough (> 15m) to catch up after signal drop
+            if (currentSpeedKmH > configRef.current.minMoveThreshold || dist > 15) {
               hasMoved.current = true; // Also mark as moved if distance logic triggers
               setDistance(prev => {
                 const newDist = prev + dist;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTaxiMeter } from './hooks/useTaxiMeter';
 import SettingsModal from './components/SettingsModal';
 import SplashScreen from './components/SplashScreen';
+import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { StatusBar } from '@capacitor/status-bar';
 import Speedometer from './components/Speedometer';
@@ -31,6 +32,13 @@ const App = () => {
     initApp();
 
     const checkPermissions = async () => {
+      // On browser, skip permission checks and just show splash briefly
+      if (!Capacitor.isNativePlatform()) {
+        setIsPermGranted(true);
+        setTimeout(() => setShowSplash(false), 2000);
+        return;
+      }
+
       const startTime = Date.now();
       
       try {

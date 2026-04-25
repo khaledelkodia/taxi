@@ -1,36 +1,46 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useSpring, useTransform } from 'framer-motion';
 
 const Speedometer = ({ speed = 0, maxSpeed = 160, label = 'KM/H' }) => {
   const clampedSpeed = Math.min(Math.max(0, speed), maxSpeed);
 
-  // Arc config: sweeps from -135° to +135° (270° total)
-  const startAngle = -135;
-  const endAngle = 135;
-  const totalSweep = endAngle - startAngle; // 270
+  // Semicircle: 180° (left = 0) to 360° (right = max)
+  const svgStartAngle = 180;
+  const svgSweep = 180;
 
-  // Needle angle
-  const needleAngle = startAngle + (clampedSpeed / maxSpeed) * totalSweep;
+  const cx = 130;
+  const cy = 110;
+  const arcR = 90;
+  const tickOuterR = 90;
+  const tickMajorInnerR = 74;
+  const tickMinorInnerR = 82;
+  const labelR = 62;
+  const needleR = 80;
+  const counterR = 12;
 
-  // Tick marks generation
+  const toRad = (deg) => (deg * Math.PI) / 180;
+
+  // Animated spring value for needle
+  const springVal = useSpring(clampedSpeed, { stiffness: 60, damping: 14 });
+
+  // compute needle angle from speed
+  const getNeedleAngleDeg = (spd) => svgStartAngle + (spd / maxSpeed) * svgSweep;
+
+  // Tick marks
   const majorTicks = useMemo(() => {
     const ticks = [];
     const step = 20;
     for (let v = 0; v <= maxSpeed; v += step) {
-      const angle = startAngle + (v / maxSpeed) * totalSweep;
-      const rad = (angle * Math.PI) / 180;
-      const r1 = 88; // outer
-      const r2 = 76; // inner for major
-      const rLabel = 64; // label position
+      const angle = svgStartAngle + (v / maxSpeed) * svgSweep;
+      const rad = toRad(angle);
       ticks.push({
         value: v,
-        angle,
-        x1: 100 + r1 * Math.cos(rad),
-        y1: 100 + r1 * Math.sin(rad),
-        x2: 100 + r2 * Math.cos(rad),
-        y2: 100 + r2 * Math.sin(rad),
-        lx: 100 + rLabel * Math.cos(rad),
-        ly: 100 + rLabel * Math.sin(rad),
+        x1: cx + tickOuterR * Math.cos(rad),
+        y1: cy + tickOuterR * Math.sin(rad),
+        x2: cx + tickMajorInnerR * Math.cos(rad),
+        y2: cy + tickMajorInnerR * Math.sin(rad),
+        lx: cx + labelR * Math.cos(rad),
+        ly: cy + labelR * Math.sin(rad),
       });
     }
     return ticks;
@@ -40,228 +50,184 @@ const Speedometer = ({ speed = 0, maxSpeed = 160, label = 'KM/H' }) => {
     const ticks = [];
     const step = 10;
     for (let v = 0; v <= maxSpeed; v += step) {
-      if (v % 20 === 0) continue; // skip majors
-      const angle = startAngle + (v / maxSpeed) * totalSweep;
-      const rad = (angle * Math.PI) / 180;
-      const r1 = 88;
-      const r2 = 81;
+      if (v % 20 === 0) continue;
+      const angle = svgStartAngle + (v / maxSpeed) * svgSweep;
+      const rad = toRad(angle);
       ticks.push({
-        x1: 100 + r1 * Math.cos(rad),
-        y1: 100 + r1 * Math.sin(rad),
-        x2: 100 + r2 * Math.cos(rad),
-        y2: 100 + r2 * Math.sin(rad),
+        x1: cx + tickOuterR * Math.cos(rad),
+        y1: cy + tickOuterR * Math.sin(rad),
+        x2: cx + tickMinorInnerR * Math.cos(rad),
+        y2: cy + tickMinorInnerR * Math.sin(rad),
       });
     }
     return ticks;
   }, [maxSpeed]);
 
-  // Arc path for the colored track
-  const describeArc = (cx, cy, r, startA, endA) => {
-    const s = (startA * Math.PI) / 180;
-    const e = (endA * Math.PI) / 180;
-    const x1 = cx + r * Math.cos(s);
-    const y1 = cy + r * Math.sin(s);
-    const x2 = cx + r * Math.cos(e);
-    const y2 = cy + r * Math.sin(e);
-    const largeArc = endA - startA > 180 ? 1 : 0;
+  // Arc path
+  const describeArc = (r, startA, endA) => {
+    const sRad = toRad(startA);
+    const eRad = toRad(endA);
+    const x1 = cx + r * Math.cos(sRad);
+    const y1 = cy + r * Math.sin(sRad);
+    const x2 = cx + r * Math.cos(eRad);
+    const y2 = cy + r * Math.sin(eRad);
+    const largeArc = (endA - startA) > 180 ? 1 : 0;
     return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
   };
 
-  // Active arc (filled portion)
-  const activeEndAngle = startAngle + (clampedSpeed / maxSpeed) * totalSweep;
+  const activeEndAngle = svgStartAngle + (clampedSpeed / maxSpeed) * svgSweep;
 
   // Color based on speed
   const getSpeedColor = () => {
-    if (clampedSpeed < 40) return '#FFD000';       // Gold/Yellow
-    if (clampedSpeed < 80) return '#FF9500';        // Orange
-    if (clampedSpeed < 120) return '#FF5722';       // Deep Orange
-    return '#FF1744';                                // Red
+    if (clampedSpeed < 40) return '#FFD000';
+    if (clampedSpeed < 80) return '#FF9500';
+    if (clampedSpeed < 120) return '#FF5722';
+    return '#FF1744';
   };
-
   const speedColor = getSpeedColor();
 
+  // Calculate needle tip & counter positions directly
+  const needleAngleRad = toRad(getNeedleAngleDeg(clampedSpeed));
+  const tipX = cx + needleR * Math.cos(needleAngleRad);
+  const tipY = cy + needleR * Math.sin(needleAngleRad);
+  const ctrX = cx - counterR * Math.cos(needleAngleRad);
+  const ctrY = cy - counterR * Math.sin(needleAngleRad);
+
+  // For animated needle, use motion values
+  const needleTipX = useTransform(springVal, (v) => {
+    const rad = toRad(getNeedleAngleDeg(v));
+    return cx + needleR * Math.cos(rad);
+  });
+  const needleTipY = useTransform(springVal, (v) => {
+    const rad = toRad(getNeedleAngleDeg(v));
+    return cy + needleR * Math.sin(rad);
+  });
+  const needleCtrX = useTransform(springVal, (v) => {
+    const rad = toRad(getNeedleAngleDeg(v));
+    return cx - counterR * Math.cos(rad);
+  });
+  const needleCtrY = useTransform(springVal, (v) => {
+    const rad = toRad(getNeedleAngleDeg(v));
+    return cy - counterR * Math.sin(rad);
+  });
+
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
-      padding: '5px 0',
+      padding: '0',
+      marginTop: '-5px',
+      marginBottom: '-15px',
     }}>
-      <div style={{
-        position: 'relative',
-        width: '220px',
-        height: '140px',
-        overflow: 'visible',
-      }}>
-        <svg
-          viewBox="0 0 200 140"
-          width="220"
-          height="140"
-          style={{ overflow: 'visible' }}
-        >
-          {/* Definitions */}
-          <defs>
-            {/* Outer glow filter */}
-            <filter id="needle-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            {/* Active arc glow */}
-            <filter id="arc-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            {/* Radial gradient for gauge face */}
-            <radialGradient id="gauge-bg" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="rgba(30,32,38,0.9)" />
-              <stop offset="85%" stopColor="rgba(15,16,18,0.95)" />
-              <stop offset="100%" stopColor="rgba(10,10,12,1)" />
-            </radialGradient>
-            {/* Gradient for the active arc */}
-            <linearGradient id="active-arc-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#FFD000" />
-              <stop offset="50%" stopColor={speedColor} />
-              <stop offset="100%" stopColor={speedColor} />
-            </linearGradient>
-          </defs>
+      <svg
+        viewBox="0 0 260 125"
+        width="100%"
+        height="auto"
+        style={{ maxWidth: '100%' }}
+      >
+        <defs>
+          <filter id="needle-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="arc-glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <linearGradient id="active-arc-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#FFD000" />
+            <stop offset="50%" stopColor="#FFAB00" />
+            <stop offset="100%" stopColor={speedColor} />
+          </linearGradient>
+          <linearGradient id="track-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(255,208,0,0.12)" />
+            <stop offset="100%" stopColor="rgba(255,208,0,0.04)" />
+          </linearGradient>
+        </defs>
 
-          {/* Background circle (half visible) */}
-          <circle cx="100" cy="100" r="94" fill="url(#gauge-bg)" />
-          {/* Outer ring */}
-          <circle cx="100" cy="100" r="93" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+        {/* Background arc track */}
+        <path
+          d={describeArc(arcR, svgStartAngle, svgStartAngle + svgSweep)}
+          fill="none"
+          stroke="url(#track-grad)"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
 
-          {/* Background arc track */}
+        {/* Active arc */}
+        {clampedSpeed > 0.5 && (
           <path
-            d={describeArc(100, 100, 88, startAngle, endAngle)}
+            d={describeArc(arcR, svgStartAngle, activeEndAngle)}
             fill="none"
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth="4"
+            stroke="url(#active-arc-grad)"
+            strokeWidth="6"
             strokeLinecap="round"
+            filter="url(#arc-glow)"
           />
+        )}
 
-          {/* Active arc */}
-          {clampedSpeed > 0 && (
-            <motion.path
-              d={describeArc(100, 100, 88, startAngle, activeEndAngle)}
-              fill="none"
-              stroke="url(#active-arc-grad)"
-              strokeWidth="4"
-              strokeLinecap="round"
-              filter="url(#arc-glow)"
-              initial={false}
-              animate={{ opacity: 1 }}
-            />
-          )}
+        {/* Minor ticks */}
+        {minorTicks.map((tick, i) => (
+          <line key={`m-${i}`}
+            x1={tick.x1} y1={tick.y1} x2={tick.x2} y2={tick.y2}
+            stroke="rgba(255,255,255,0.18)" strokeWidth="1.2" strokeLinecap="round"
+          />
+        ))}
 
-          {/* Minor tick marks */}
-          {minorTicks.map((tick, i) => (
+        {/* Major ticks + labels */}
+        {majorTicks.map((tick, i) => (
+          <g key={`M-${i}`}>
             <line
-              key={`minor-${i}`}
-              x1={tick.x1} y1={tick.y1}
-              x2={tick.x2} y2={tick.y2}
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth="1"
-              strokeLinecap="round"
+              x1={tick.x1} y1={tick.y1} x2={tick.x2} y2={tick.y2}
+              stroke="rgba(255,255,255,0.6)" strokeWidth="2.5" strokeLinecap="round"
             />
-          ))}
+            <text x={tick.lx} y={tick.ly}
+              textAnchor="middle" dominantBaseline="central"
+              fill="rgba(255,255,255,0.55)" fontSize="9" fontWeight="700"
+              fontFamily="'Inter', sans-serif">
+              {tick.value}
+            </text>
+          </g>
+        ))}
 
-          {/* Major tick marks */}
-          {majorTicks.map((tick, i) => (
-            <g key={`major-${i}`}>
-              <line
-                x1={tick.x1} y1={tick.y1}
-                x2={tick.x2} y2={tick.y2}
-                stroke="rgba(255,255,255,0.5)"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <text
-                x={tick.lx}
-                y={tick.ly}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fill="rgba(255,255,255,0.55)"
-                fontSize="8"
-                fontWeight="700"
-                fontFamily="'Inter', sans-serif"
-              >
-                {tick.value}
-              </text>
-            </g>
-          ))}
+        {/* Center hub */}
+        <circle cx={cx} cy={cy} r="10" fill="rgba(12,13,16,1)" stroke="rgba(255,208,0,0.15)" strokeWidth="1.5" />
+        <circle cx={cx} cy={cy} r="6" fill="none" stroke={speedColor} strokeWidth="2" opacity="0.8" />
+        <circle cx={cx} cy={cy} r="3" fill={speedColor} opacity="1" />
 
-          {/* Center hub */}
-          <circle cx="100" cy="100" r="8" fill="rgba(20,22,26,1)" stroke={speedColor} strokeWidth="2" />
-          <circle cx="100" cy="100" r="4" fill={speedColor} opacity="0.8" />
+        {/* Needle — drawn by coordinates, animated with spring */}
+        {/* Main needle (bright) */}
+        <motion.line
+          x1={needleCtrX} y1={needleCtrY} x2={needleTipX} y2={needleTipY}
+          stroke="#FF3030" strokeWidth="3" strokeLinecap="round"
+        />
+        {/* White highlight stripe */}
+        <motion.line
+          x1={cx} y1={cy} x2={needleTipX} y2={needleTipY}
+          stroke="rgba(255,255,255,0.5)" strokeWidth="1" strokeLinecap="round"
+        />
+        {/* Tip */}
+        <motion.circle cx={needleTipX} cy={needleTipY} r="2.5" fill="#FF3030" />
 
-          {/* Needle */}
-          <motion.g
-            animate={{ rotate: needleAngle }}
-            transition={{ type: 'spring', stiffness: 80, damping: 15 }}
-            style={{ originX: '100px', originY: '100px', transformOrigin: '100px 100px' }}
-          >
-            {/* Needle shadow */}
-            <line
-              x1="100" y1="100"
-              x2="185" y2="100"
-              stroke="rgba(0,0,0,0.3)"
-              strokeWidth="3"
-              strokeLinecap="round"
-            />
-            {/* Main needle body */}
-            <line
-              x1="100" y1="100"
-              x2="184" y2="100"
-              stroke={speedColor}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              filter="url(#needle-glow)"
-            />
-            {/* Needle tip accent */}
-            <circle cx="184" cy="100" r="2" fill={speedColor} opacity="0.9" />
-            {/* Counter-weight (small part behind center) */}
-            <line
-              x1="100" y1="100"
-              x2="85" y2="100"
-              stroke="rgba(255,255,255,0.2)"
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
-          </motion.g>
-
-          {/* Digital speed display */}
-          <text
-            x="100"
-            y="82"
-            textAnchor="middle"
-            fill="white"
-            fontSize="22"
-            fontWeight="800"
-            fontFamily="'Inter', monospace"
-            letterSpacing="-1"
-          >
-            {Math.round(clampedSpeed)}
-          </text>
-          <text
-            x="100"
-            y="94"
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.35)"
-            fontSize="7"
-            fontWeight="700"
-            fontFamily="'Inter', sans-serif"
-            letterSpacing="2"
-          >
-            {label}
-          </text>
-        </svg>
-      </div>
+        {/* Digital speed */}
+        <text x={cx} y={cy - 28} textAnchor="middle"
+          fill="white" fontSize="30" fontWeight="800"
+          fontFamily="'Inter', monospace" letterSpacing="-1">
+          {Math.round(clampedSpeed)}
+        </text>
+        <text x={cx} y={cy - 14} textAnchor="middle"
+          fill="rgba(255,255,255,0.35)" fontSize="8" fontWeight="700"
+          fontFamily="'Inter', sans-serif" letterSpacing="3">
+          {label}
+        </text>
+      </svg>
     </div>
   );
 };

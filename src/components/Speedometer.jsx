@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 
 const Speedometer = ({ speed = 0, maxSpeed = 160, label = 'KM/H' }) => {
@@ -21,7 +21,12 @@ const Speedometer = ({ speed = 0, maxSpeed = 160, label = 'KM/H' }) => {
   const toRad = (deg) => (deg * Math.PI) / 180;
 
   // Animated spring value for needle
-  const springVal = useSpring(clampedSpeed, { stiffness: 60, damping: 14 });
+  const springVal = useSpring(0, { stiffness: 60, damping: 14 });
+
+  // Update spring whenever speed changes
+  useEffect(() => {
+    springVal.set(clampedSpeed);
+  }, [clampedSpeed, springVal]);
 
   // compute needle angle from speed
   const getNeedleAngleDeg = (spd) => svgStartAngle + (spd / maxSpeed) * svgSweep;

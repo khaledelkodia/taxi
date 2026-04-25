@@ -4,7 +4,8 @@ import SettingsModal from './components/SettingsModal';
 import SplashScreen from './components/SplashScreen';
 import { Geolocation } from '@capacitor/geolocation';
 import { StatusBar } from '@capacitor/status-bar';
-import { Play, Square, Pause, Settings, Globe, Navigation, Clock, Gauge, Signal, Car } from 'lucide-react';
+import Speedometer from './components/Speedometer';
+import { Play, Square, Pause, Settings, Globe, Navigation, Clock, Signal, Car } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const App = () => {
@@ -186,19 +187,8 @@ const App = () => {
           </div>
         </div>
 
-        {/* Dynamic Speed Meter */}
-        <div style={{ padding: '10px 5px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: '700' }}>{t.speed}</span>
-             <span style={{ fontSize: '0.8rem', fontWeight: '800' }}>{speed.toFixed(0)} KM/H</span>
-          </div>
-          <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-            <motion.div 
-              animate={{ width: `${Math.min(100, (speed / 120) * 100)}%` }}
-              style={{ height: '100%', background: 'var(--taxi-yellow)', boxShadow: '0 0 10px var(--taxi-yellow-glow)' }}
-            />
-          </div>
-        </div>
+        {/* Professional Car Speedometer */}
+        <Speedometer speed={speed} maxSpeed={160} label="KM/H" />
 
       </main>
 

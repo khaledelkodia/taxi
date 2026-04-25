@@ -162,20 +162,13 @@ export const useTaxiMeter = () => {
       );
 
       timerRef.current = setInterval(() => {
-        if (statusRef.current === TRIP_STATUS.RUNNING) {
-          setSpeed(s => {
-            // ONLY accumulate waiting time if:
-            // 1. Waiting is enabled in config
-            // 2. Speed is low
-            // 3. AND the car has actually moved at least once (to prevent charging before start)
-            if (configRef.current.enableWaitingTime && s <= configRef.current.speedThreshold && hasMoved.current) {
-              setWaitingTime(prev => {
-                const newWait = prev + 1;
-                setFare(calculateCurrentFare(distanceRef.current, newWait, configRef.current));
-                return newWait;
-              });
-            }
-            return s;
+        // Waiting time ONLY counts when user explicitly presses Pause button (PAUSED state)
+        // Traffic lights and natural stops during RUNNING do NOT count
+        if (statusRef.current === TRIP_STATUS.PAUSED && configRef.current.enableWaitingTime) {
+          setWaitingTime(prev => {
+            const newWait = prev + 1;
+            setFare(calculateCurrentFare(distanceRef.current, newWait, configRef.current));
+            return newWait;
           });
         }
       }, 1000);
